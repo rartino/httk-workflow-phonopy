@@ -1,0 +1,31 @@
+# Recognizes a finished finite-displacement phonopy calculation whose displaced
+# supercells were computed with VASP: phonopy_disp.yaml and the unit-cell POSCAR,
+# with one VASP static run per displacement in disp-001/, disp-002/, ...
+
+[workflow]
+name = "phonopy.calculation.vasp"
+description = "a finished phonopy finite-displacement calculation with VASP static runs in its disp-NNN directories"
+
+[workflow.recognize]
+file = "recognize.py"
+priority = 20
+requires = ["phonopy_disp.yaml", "POSCAR"]
+
+[workflow.inputs.structure]
+role = "initial_structure"
+entry_type = "structures"
+
+[workflow.outputs.displacement_dataset]
+entry_type = "files"
+role = "displacement_dataset"
+description = "phonopy_disp.yaml: the supercell and the displacements phonopy generated."
+product_of = "initial_structure"
+
+[workflow.outputs.force_sets]
+entry_type = "files"
+role = "force_sets"
+description = "FORCE_SETS: the displacements with their computed forces, when phonopy -f was run."
+product_of = "initial_structure"
+
+[workflow.collect]
+file = "collect.py"

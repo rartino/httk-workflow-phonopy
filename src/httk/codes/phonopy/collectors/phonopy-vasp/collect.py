@@ -22,7 +22,7 @@ def _file(where: PurePosixPath, path: Path, media_type: str | None) -> FileRecor
         (where / path.name).as_posix(),
         path.name,
         size=path.stat().st_size,
-        media_type=None if compressed else media_type,
+        media_type="application/octet-stream" if compressed or media_type is None else media_type,
         sha256=sha256_file(path),
     )
 

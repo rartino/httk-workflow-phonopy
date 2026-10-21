@@ -95,7 +95,11 @@ def test_force_sets_are_kept_when_present(tmp_path: Path) -> None:
 
     assert parent.missing_collector is None and parent.unfulfilled == ()
     force_sets = cast(FileRecord, parent.outputs["force_sets"])
-    assert (force_sets.url, force_sets.name, force_sets.media_type) == ("FORCE_SETS", "FORCE_SETS", None)
+    assert (force_sets.url, force_sets.name, force_sets.media_type) == (
+        "FORCE_SETS",
+        "FORCE_SETS",
+        "application/octet-stream",
+    )
 
 
 def test_the_store_links_the_parent_run_to_the_displacement_runs(tmp_path: Path) -> None:
@@ -196,7 +200,11 @@ def test_a_compressed_dataset_is_collected_with_the_same_identity(tmp_path: Path
     assert parent.missing_collector is None
     dataset = cast(FileRecord, parent.outputs["displacement_dataset"])
     raw = (packed / "phonopy_disp.yaml.gz").read_bytes()
-    assert (dataset.url, dataset.name, dataset.media_type) == ("phonopy_disp.yaml.gz", "phonopy_disp.yaml.gz", None)
+    assert (dataset.url, dataset.name, dataset.media_type) == (
+        "phonopy_disp.yaml.gz",
+        "phonopy_disp.yaml.gz",
+        "application/octet-stream",
+    )
     assert (dataset.size, dataset.sha256) == (len(raw), hashlib.sha256(raw).hexdigest())
 
 

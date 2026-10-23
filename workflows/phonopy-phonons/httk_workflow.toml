@@ -1,10 +1,11 @@
 # Harmonic phonons of one relaxed structure with phonopy, with the forces from
-# whatever workflow the job binds to the `forces` call slot (ase.static,
-# vasp.static, ...). See run.py for the steps and README.md for bindings.
+# the workflow bound to the `forces` call slot: vasp.static, configured
+# phonon-safe, by default, or any fitting workflow (ase.static, ...). See run.py
+# for the steps and README.md for bindings.
 
 [workflow]
 name = "phonopy.phonons"
-description = "code-neutral harmonic phonons of one structure by finite displacements with phonopy: one call of the bound forces workflow (the forces call slot) per displaced supercell of the HPKOT primitive cell, then force constants, band structure, density of states and thermodynamics; the input must already be relaxed with the same force model, and there is no relaxation and no non-analytical correction"
+description = "code-neutral harmonic phonons of one structure by finite displacements with phonopy: one call of the forces workflow (the forces call slot: vasp.static with the settings vasp.phonons uses by default, or any workflow the job binds) per displaced supercell of the HPKOT primitive cell, then force constants, band structure, density of states and thermodynamics; the input must already be relaxed with the same force model, and there is no relaxation and no non-analytical correction"
 requires = [
   "httk-core>=2.1.2",
   "httk-workflow>=2.1.1",
@@ -19,10 +20,21 @@ entry = "run.py"
 steps = ["displace", "analyse"]
 initial_step = "displace"
 
-# No default: the creator chooses the force model (httk job new --call forces=ase.static).
+# vasp.static by default (install it from workflows-vasp); --call forces=ase.static binds another force model.
 [workflow.calls.forces]
 description = "computes the forces on every site of one displaced supercell, in its site order"
 declaration_file = "calls/structure-forces.json"
+default = "vasp.static"
+
+# What vasp.phonons applies to its displacement children, used only with the vasp.static default: no remedy
+# that would change one child's numerics (vasp-phonons/run.py EXCLUDED_REMEDIES), its Gamma mesh of k-point
+# density 20 (phonon_kpoint_density, centering), and the tags in which templates/INCAR.phonon differs from
+# vasp-static's INCAR.static. Each entry is overridden by --call-parameter forces NAME=VALUE.
+[workflow.calls.forces.default_parameters]
+excluded_remedies = "bump_kpoints equal_kpoints centering incar.ISMEAR incar.SIGMA incar.LREAL scale_lattice"
+kpoint_density = 20.0
+centering = "Gamma"
+incar_tags = { EDIFF = "1E-7", LREAL = ".FALSE.", ADDGRID = ".TRUE.", ISMEAR = 0, SIGMA = 0.05, ICHARG = 2 }
 
 [workflow.inputs.structure]
 destination = "POSCAR"

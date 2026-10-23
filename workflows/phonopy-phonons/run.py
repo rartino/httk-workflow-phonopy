@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Harmonic phonons of a relaxed structure with phonopy, with the forces from the bound ``forces`` call slot.
 
-This runner computes no forces itself and knows no simulation code. The job's
-creator binds the ``forces`` slot (``calls/structure-forces.json``: a structure
-in, the forces on its sites out) to a workflow such as ``ase.static`` or
-``vasp.static``, and this runner calls it once per displaced supercell:
+This runner computes no forces itself and knows no simulation code. The
+``forces`` slot (``calls/structure-forces.json``: a structure in, the forces on
+its sites out) is bound to ``vasp.static`` with phonon-safe parameters by
+default (the manifest's ``default_parameters``), or to the workflow the job's
+creator names, such as ``ase.static``; this runner calls it once per displaced
+supercell:
 
 * ``displace`` standardizes the staged structure to its HPKOT primitive cell with
   ``httk.atomistic.band_path`` (with ``standardize = false`` the given cell is

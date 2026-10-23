@@ -59,9 +59,10 @@ displacements with phonopy. It computes no forces itself: its call slot
 `forces` takes any workflow that turns a structure into the forces on its sites
 (the interface `workflows/phonopy-phonons/calls/structure-forces.json`: input
 `structure`, output `forces`, a `cartesian_site_forces` record that is a
-product of that structure), such as `ase.static` of *workflows-examples* or
-`vasp.static` of *workflows-vasp*. The slot has no default: every job names its
-force model.
+product of that structure). By default it is `vasp.static` of
+*workflows-vasp*, configured with the settings `vasp.phonons` gives its
+displacement runs; a job can bind `ase.static` of *workflows-examples* or any
+other fitting workflow instead.
 
 Scope:
 
@@ -93,38 +94,41 @@ package directly with `--workflow-dir workflows/phonopy-phonons`.
 
 ### Binding the forces
 
-With ASE's EMT potential (no external code; useful to try the workflow).
-`ase.static` comes from the *workflows-examples* repository: install it with
-`httk plugin install` of that repository or `httk workflow install`.
+By default the slot is bound to `vasp.static`, which must be installed from
+*workflows-vasp* (`httk plugin install` of that repository, or
+`httk workflow install vasp.static`, or `job new --install`). Installing
+`phonopy.phonons` does not install it; it only prints a notice when it is
+absent. The binding passes these `vasp.static` parameters, the ones
+`vasp.phonons` applies to its displacement runs:
+
+| Parameter | Value | Why |
+| --- | --- | --- |
+| `excluded_remedies` | `bump_kpoints equal_kpoints centering incar.ISMEAR incar.SIGMA incar.LREAL scale_lattice` | These error remedies would change the k-point mesh, its centering, the smearing, the projection scheme or the cell of one child but not the others, and force constants built from forces of different numerics are meaningless. A child that would need one fails instead. |
+| `kpoint_density` | `20.0` | One fixed density, so every supercell (all have the same lattice) gets the same automatic mesh. |
+| `centering` | `Gamma` | The mesh centering `vasp.phonons` uses. |
+| `incar_tags` | `{"EDIFF": "1E-7", "LREAL": ".FALSE.", "ADDGRID": ".TRUE.", "ISMEAR": 0, "SIGMA": 0.05, "ICHARG": 2}` | Where `vasp.phonons`' `INCAR.phonon` differs from `vasp.static`'s `INCAR.static`: tight `EDIFF`, no real-space projection, the additional grid, Gaussian smearing, a start from atomic charges. |
 
 ```console
-httk job new --install --workflow phonopy.phonons --input structure=POSCAR \
-    --call forces=ase.static --call-parameter forces calculator=ase.calculators.emt:EMT
+httk job new --install --workflow phonopy.phonons --input structure=POSCAR
 httk workflow run
 httk collect --into results.sqlite
 ```
 
-With VASP, bind `vasp.static` so that every displacement runs with the same
-numerics:
+`--call-parameter forces NAME=VALUE` overrides one entry and keeps the others,
+for example `--call-parameter forces kpoint_density=30`; other `vasp.static`
+parameters (`accuracy_per_atom`, `pseudopotential_library`, ...) are added the
+same way. An overridden `incar_tags` replaces the whole table, so repeat the
+tags above that you want to keep.
+
+Bind another workflow with `--call forces=WORKFLOW`; the parameters above are
+then not passed. With ASE's EMT potential (no external code; useful to try the
+workflow), from the *workflows-examples* repository (`httk plugin install` of
+that repository or `httk workflow install`):
 
 ```console
 httk job new --install --workflow phonopy.phonons --input structure=POSCAR \
-    --call forces=vasp.static \
-    --call-parameter forces kpoint_density=20 \
-    --call-parameter forces 'excluded_remedies=bump_kpoints equal_kpoints centering incar.ISMEAR incar.SIGMA incar.LREAL scale_lattice' \
-    --call-parameter forces 'incar_tags={"EDIFF": 1e-7, "LREAL": ".FALSE.", "ADDGRID": ".TRUE.", "ISMEAR": 0, "SIGMA": 0.05}'
+    --call forces=ase.static --call-parameter forces calculator=ase.calculators.emt:EMT
 ```
-
-- `kpoint_density` is one fixed value, so every supercell (all have the same
-  lattice) gets the same automatic mesh.
-- `excluded_remedies` is the list `vasp.phonons` uses: these error remedies
-  would change the k-point mesh, its centering, the smearing, the projection
-  scheme or the cell of one child but not the others, and force constants
-  built from forces of different numerics are meaningless. A child that would
-  need one of them fails instead.
-- `incar_tags` gives the force settings `vasp.phonons`' `INCAR.phonon` uses
-  (tight `EDIFF`, no real-space projection, the additional grid, Gaussian
-  smearing).
 
 Code-specific numerical consistency across the displacement children is the
 binding's responsibility: a code-neutral workflow cannot judge one code's

@@ -8,6 +8,7 @@ result is compared with phonopy driven directly with ASE's EMT on the same cell.
 
 import json
 import shutil
+import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -363,12 +364,100 @@ def test_a_forces_workflow_of_another_structure_does_not_fit_the_slot(tmp_path: 
         _new_job(workspace, tmp_path, CU, callee)
 
 
-def test_the_forces_slot_has_no_default(tmp_path: Path) -> None:
+VASP_STATIC = REPO_ROOT.parent / "workflows-vasp" / "vasp-static"
+#: The forces slot's ``default_parameters``, as the manifest declares them.
+DEFAULT_PARAMETERS = tomllib.loads((PACKAGE / "httk_workflow.toml").read_text(encoding="utf-8"))["workflow"]["calls"][
+    "forces"
+]["default_parameters"]
+
+
+def _vasp_static_stub(root: Path) -> Path:
+    """Write a package named ``vasp.static`` declaring what the real one does (and no parameters); it never runs."""
+
+    root.mkdir(parents=True)
+    (root / "httk_workflow.toml").write_text(
+        f"""[workflow]
+name = "vasp.static"
+
+[workflow.runner]
+entry = "run.py"
+steps = ["prepare"]
+
+[workflow.inputs.structure]
+destination = "POSCAR"
+role = "initial_structure"
+entry_type = "structures"
+ref = "{STRUCTURE}"
+required = true
+
+[workflow.outputs.total_energy]
+entry_type = "records"
+role = "total_energy"
+ref = "https://schemas.httk.org/defs/v0.1/properties/core/total_energy"
+product_of = "initial_structure"
+
+[workflow.outputs.cartesian_site_forces]
+entry_type = "records"
+role = "cartesian_site_forces"
+ref = "{FORCES}"
+product_of = "initial_structure"
+""",
+        encoding="utf-8",
+    )
+    (root / "run.py").write_text("#!/usr/bin/env python3\nraise SystemExit(1)\n", encoding="utf-8")
+    (root / "run.py").chmod(0o755)
+    return root
+
+
+def _default_binding(tmp_path: Path, vasp_static: Path | None, **call_parameters) -> tuple[str | None, dict]:
+    """Create a job that binds nothing, with *vasp_static* installed first when given.
+
+    :return: The installed id of *vasp_static* (or ``None``) and the job's recorded ``forces`` binding.
+    """
+
     from httk.workflow.scaffold import new_job
 
+    workspace = _workspace(tmp_path)
+    installed = None if vasp_static is None else _install(workspace, vasp_static)
+    _install(workspace, PACKAGE)
     (tmp_path / "POSCAR").write_text(CU, encoding="utf-8")
-    with pytest.raises(ValueError, match="call slot 'forces' of .* has no default; bind it"):
-        new_job(_workspace(tmp_path), PACKAGE, inputs={"structure": tmp_path / "POSCAR"}, install=True)
+    job = new_job(
+        workspace,
+        "phonopy.phonons",
+        inputs={"structure": tmp_path / "POSCAR"},
+        call_parameters={"forces": call_parameters} if call_parameters else None,
+    )
+    return installed, json.loads((job.payload / "job.json").read_text(encoding="utf-8"))["calls"]["forces"]
+
+
+def test_an_unbound_slot_takes_vasp_static_with_its_phonon_safe_parameters(tmp_path: Path) -> None:
+    installed, binding = _default_binding(tmp_path, _vasp_static_stub(tmp_path / "vasp-static"))
+    assert binding == {"workflow": installed, "parameters": DEFAULT_PARAMETERS}
+    assert DEFAULT_PARAMETERS["incar_tags"]["EDIFF"] == "1E-7" and DEFAULT_PARAMETERS["kpoint_density"] == 20
+
+
+def test_a_call_parameter_overrides_one_default_parameter(tmp_path: Path) -> None:
+    _installed, binding = _default_binding(tmp_path, _vasp_static_stub(tmp_path / "vasp-static"), kpoint_density=30)
+    assert binding["parameters"] == DEFAULT_PARAMETERS | {"kpoint_density": 30}
+
+
+def test_another_bound_workflow_gets_no_default_parameters(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    job = _new_job(workspace, tmp_path, CU, _callee(tmp_path / "callee"))
+    binding = json.loads((job.payload / "job.json").read_text(encoding="utf-8"))["calls"]["forces"]
+    assert binding["parameters"] == {}
+
+
+def test_the_default_must_be_installed(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="call slot 'forces' of .* defaults to vasp.static, which is not installed"):
+        _default_binding(tmp_path, None)
+
+
+@pytest.mark.skipif(not VASP_STATIC.is_dir(), reason="needs the workflows-vasp checkout beside this repository")
+def test_the_real_vasp_static_fits_the_slot_with_the_default_parameters(tmp_path: Path) -> None:
+    pytest.importorskip("httk.codes.vasp")
+    installed, binding = _default_binding(tmp_path, VASP_STATIC)
+    assert binding == {"workflow": installed, "parameters": DEFAULT_PARAMETERS}
 
 
 def _shifted_cu3au(handedness: str) -> str:

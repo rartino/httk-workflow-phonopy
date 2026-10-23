@@ -4,8 +4,8 @@ This site documents the *httk-workflow-phonopy* module. For the full
 documentation of *httk₂*, see [docs.httk.org](https://docs.httk.org).
 
 The module ships the workflow package `phonopy.phonons`, code-neutral
-harmonic phonons by finite displacements whose forces come from any force
-workflow the job binds (see {doc}`usage`), and teaches `httk collect` to
+harmonic phonons by finite displacements whose forces come from `vasp.static`
+by default or any other force workflow the job binds (see {doc}`usage`), and teaches `httk collect` to
 recognize finished
 [phonopy](https://phonopy.github.io/phonopy/) finite-displacement
 calculations whose displaced supercells were computed with VASP. Such a

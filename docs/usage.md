@@ -137,10 +137,18 @@ The repository's `workflows/phonopy-phonons` is the workflow package
 displacements with phonopy, with no relaxation and no non-analytical
 correction. It computes no forces itself. Its call slot `forces` (interface
 `calls/structure-forces.json`: a structure in, a `cartesian_site_forces`
-record of that structure out) has no default, so every job binds a force
-workflow:
+record of that structure out) defaults to `vasp.static` of *workflows-vasp*,
+called with the settings `vasp.phonons` gives its displacement runs (no
+remedies that change one run's numerics, one Γ-centred k-point density, and
+`INCAR.phonon`'s tight `EDIFF`, `LREAL = .FALSE.`, `ADDGRID` and Gaussian
+smearing). `vasp.static` must be installed for that; installing
+`phonopy.phonons` only prints a notice when it is absent.
+`--call-parameter forces NAME=VALUE` overrides one of those settings, and
+`--call forces=WORKFLOW` binds any other fitting workflow instead, without
+them, for example ASE's EMT potential from *workflows-examples*:
 
 ```console
+httk job new --install --workflow phonopy.phonons --input structure=POSCAR
 httk job new --install --workflow phonopy.phonons --input structure=POSCAR \
     --call forces=ase.static --call-parameter forces calculator=ase.calculators.emt:EMT
 httk workflow run
@@ -153,9 +161,8 @@ httk collect --into results.sqlite
 the force constants, the band structure along the HPKOT path, the density of
 states and the harmonic thermodynamics. Keeping the displacement children
 numerically consistent (the same k-point mesh, smearing and remedies) is the
-binding's responsibility; the repository README gives a `vasp.static` binding
-that excludes the remedies that would change one child's numerics, and lists
-the parameters and outputs. Install the workflow with `httk plugin install` of
+binding's responsibility; the repository README lists the default's settings,
+the parameters and the outputs. Install the workflow with `httk plugin install` of
 the repository, or use it directly with `--workflow-dir`.
 
 ## Building blocks

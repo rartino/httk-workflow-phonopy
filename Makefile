@@ -51,14 +51,14 @@ clean: docs-clean dist-clean
 # ruff walks the same roots recursively, so a new module is covered the day it
 # is created rather than the day someone remembers to extend a glob.
 format:
-	$(PYTHON) -m ruff check src tests tools --fix
-	$(PYTHON) -m ruff format src tests tools
+	$(PYTHON) -m ruff check src tests tools workflows --fix
+	$(PYTHON) -m ruff format src tests tools workflows
 
 format-check: lint
-	$(PYTHON) -m ruff format --check src tests tools
+	$(PYTHON) -m ruff format --check src tests tools workflows
 
 lint:
-	$(PYTHON) -m ruff check src tests tools
+	$(PYTHON) -m ruff check src tests tools workflows
 	pydoclint --quiet src
 
 typecheck_pyright:

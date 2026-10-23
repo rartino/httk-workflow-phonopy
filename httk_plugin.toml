@@ -1,0 +1,4 @@
+[plugin]
+name = "httk-workflow-phonopy"
+description = "Code-neutral phonopy workflow packages (harmonic phonons by finite displacements)"
+workflows = ["workflows/phonopy-phonons"]

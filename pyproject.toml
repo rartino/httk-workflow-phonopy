@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "httk-workflow-phonopy"
 version = "0.1.0"
-description = "Collect phonopy calculations with httk₂ workflows."
+description = "phonopy support for httk₂ workflows: a code-neutral phonon workflow and phonopy calculation collectors."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -52,6 +52,13 @@ dev = [
   "pyright",
   "mypy",
   "pydoclint>=0.9,<1"
+]
+# What the phonopy.phonons tests run (they skip without it): the workflow's runtime needs and the EMT callee's ASE.
+ci = [
+  "httk-atomistic>=2.1.2,<3",
+  "httk-analyse>=2.1.0,<3",
+  "phonopy>=2.20",
+  "ase>=3.22",
 ]
 docs = [
   "sphinx",
@@ -107,7 +114,7 @@ quote-style = "preserve"
 
 [tool.pyright]
 pythonVersion = "3.12"
-include = ["src", "tests"]
+include = ["src", "tests", "workflows"]
 extraPaths = ["src", "../httk-core/src", "../httk-workflow/src", "../httk-workflow-vasp/src"]
 venvPath = ".."
 venv = ".venv"
@@ -115,8 +122,9 @@ reportMissingImports = true
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src", "tests"]
-exclude = ["/collectors/"]  # hook files live in a dashed directory and share basenames, so they are not modules
+files = ["src", "tests", "workflows"]
+# Hook files live in dashed directories and share basenames (collect.py), so they are not modules.
+exclude = ["/collectors/"]
 mypy_path = ["src", "tests"]
 namespace_packages = true
 explicit_package_bases = true

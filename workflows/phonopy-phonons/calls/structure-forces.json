@@ -1,0 +1,21 @@
+{
+  "title": "structure to forces",
+  "description": "Computes the force on every site of one structure, in its Cartesian frame and site order, without moving the sites: a single point of any force model.",
+  "inputs": [
+    {
+      "name": "structure",
+      "entry_type": "structures",
+      "ref": "https://schemas.optimade.org/defs/v1.3/entrytypes/optimade/structures",
+      "description": "The structure whose forces are computed, as given."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "forces",
+      "entry_type": "records",
+      "ref": "https://schemas.httk.org/defs/v0.1/properties/core/cartesian_site_forces",
+      "product_of": "structure",
+      "description": "The force on every site of that structure, in eV/Angstrom."
+    }
+  ]
+}

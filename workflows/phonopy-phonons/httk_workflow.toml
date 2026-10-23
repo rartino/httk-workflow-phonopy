@@ -1,0 +1,151 @@
+# Harmonic phonons of one relaxed structure with phonopy, with the forces from
+# whatever workflow the job binds to the `forces` call slot (ase.static,
+# vasp.static, ...). See run.py for the steps and README.md for bindings.
+
+[workflow]
+name = "phonopy.phonons"
+description = "code-neutral harmonic phonons of one structure by finite displacements with phonopy: one call of the bound forces workflow (the forces call slot) per displaced supercell of the HPKOT primitive cell, then force constants, band structure, density of states and thermodynamics; the input must already be relaxed with the same force model, and there is no relaxation and no non-analytical correction"
+requires = [
+  "httk-core>=2.1.2",
+  "httk-workflow>=2.1.1",
+  "httk-atomistic>=2.1.2",
+  "httk-analyse>=2.1.0",
+  "phonopy>=2.20",
+  "spglib>=2.0",
+]
+
+[workflow.runner]
+entry = "run.py"
+steps = ["displace", "analyse"]
+initial_step = "displace"
+
+# No default: the creator chooses the force model (httk job new --call forces=ase.static).
+[workflow.calls.forces]
+description = "computes the forces on every site of one displaced supercell, in its site order"
+declaration_file = "calls/structure-forces.json"
+
+[workflow.inputs.structure]
+destination = "POSCAR"
+role = "initial_structure"
+entry_type = "structures"
+ref = "https://schemas.optimade.org/defs/v1.3/entrytypes/optimade/structures"
+description = "The structure whose phonons are computed, already relaxed with the force model bound to forces."
+required = true
+
+[workflow.parameters.standardize]
+type = "boolean"
+default = true
+description = "Use the HPKOT primitive cell of the structure as the phonon cell; false keeps the given cell, which must be a basis of its HPKOT lattice."
+
+[workflow.parameters.min_length]
+type = "number"
+default = 20.0
+description = "Minimum perpendicular width of the diagonal supercell, in Angstrom."
+
+[workflow.parameters.max_atoms]
+type = "integer"
+default = 300
+description = "Refuse a supercell with more atoms than this."
+
+[workflow.parameters.displacement]
+type = "number"
+default = 0.01
+description = "phonopy's displacement amplitude, in Angstrom."
+
+[workflow.parameters.symmetry_tolerance]
+type = "number"
+default = 1e-3
+description = "Symmetry tolerance for the HPKOT cell and path, in Angstrom."
+
+[workflow.parameters.mesh_length]
+type = "number"
+default = 100.0
+description = "phonopy's q-point mesh length for the density of states and the thermodynamics."
+
+[workflow.parameters.band_points]
+type = "integer"
+default = 51
+description = "q-points per segment of the HPKOT band path."
+
+[workflow.parameters.temperatures]
+type = "array"
+default = [
+  0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0,
+  170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0, 250.0, 260.0, 270.0, 280.0, 290.0, 300.0, 310.0, 320.0, 330.0,
+  340.0, 350.0, 360.0, 370.0, 380.0, 390.0, 400.0, 410.0, 420.0, 430.0, 440.0, 450.0, 460.0, 470.0, 480.0, 490.0, 500.0,
+  510.0, 520.0, 530.0, 540.0, 550.0, 560.0, 570.0, 580.0, 590.0, 600.0, 610.0, 620.0, 630.0, 640.0, 650.0, 660.0, 670.0,
+  680.0, 690.0, 700.0, 710.0, 720.0, 730.0, 740.0, 750.0, 760.0, 770.0, 780.0, 790.0, 800.0, 810.0, 820.0, 830.0, 840.0,
+  850.0, 860.0, 870.0, 880.0, 890.0, 900.0, 910.0, 920.0, 930.0, 940.0, 950.0, 960.0, 970.0, 980.0, 990.0, 1000.0,
+]
+description = "Temperatures of the thermodynamics, in K (default 0 to 1000 in steps of 10)."
+
+[workflow.parameters.cutoff_frequency]
+type = "number"
+default = 0.05
+description = "Modes below this frequency (THz) are left out of the thermodynamics."
+
+[workflow.parameters.imaginary]
+type = "string"
+default = "raise"
+description = "raise: no thermodynamics when there are imaginary modes; omit: leave them out."
+
+[workflow.parameters.imaginary_tolerance]
+type = "number"
+default = 0.05
+description = "Mesh frequencies below minus this (THz) count as imaginary modes."
+
+[workflow.outputs.phonon_cell]
+entry_type = "structures"
+role = "phonon_cell"
+ref = "https://schemas.optimade.org/defs/v1.3/entrytypes/optimade/structures"
+description = "The HPKOT primitive cell, its sites ordered by species, whose dynamical matrix phonopy diagonalized; the phonon records refer to it."
+product_of = "initial_structure"
+
+[workflow.outputs.phonon_band_structure]
+entry_type = "records"
+role = "phonon_band_structure"
+ref = "https://schemas.httk.org/defs/v0.1/properties/thermodynamics/phonon_band_structure"
+description = "The phonon frequencies of the phonon cell along the HPKOT q-point path, in THz."
+product_of = "phonon_cell"
+
+[workflow.outputs.phonon_density_of_states]
+entry_type = "records"
+role = "phonon_density_of_states"
+ref = "https://schemas.httk.org/defs/v0.1/properties/thermodynamics/phonon_density_of_states"
+description = "The phonon density of states of the phonon cell, in modes per THz per cell."
+product_of = "phonon_cell"
+
+[workflow.outputs.vibrational_thermodynamics]
+entry_type = "records"
+role = "vibrational_thermodynamics"
+ref = "https://schemas.httk.org/defs/v0.1/properties/thermodynamics/vibrational_thermodynamics"
+description = "The harmonic vibrational free energy, internal energy, entropy and heat capacity of the phonon cell versus temperature."
+product_of = "phonon_cell"
+
+[workflow.outputs.zero_point_energy]
+entry_type = "records"
+role = "zero_point_energy"
+ref = "https://schemas.httk.org/defs/v0.1/properties/thermodynamics/zero_point_energy"
+description = "The vibrational zero-point energy of the phonon cell, in eV."
+product_of = "phonon_cell"
+
+[workflow.outputs.phonons_result]
+entry_type = "files"
+role = "phonons_result"
+description = "phonons.json: every input of the phonon analysis (the forces each displacement child returned, the supercell, the settings) and its results."
+product_of = "phonon_cell"
+
+[workflow.outputs.phonopy_disp]
+entry_type = "files"
+role = "phonopy_disp"
+description = "phonopy_disp.yaml: phonopy's unit cell, supercell matrix and displacements."
+product_of = "phonon_cell"
+
+[workflow.outputs.force_sets]
+entry_type = "files"
+role = "force_sets"
+description = "FORCE_SETS: phonopy's displacements with the forces of each displaced supercell."
+product_of = "phonon_cell"
+
+[workflow.collect]
+file = "collect.py"

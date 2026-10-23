@@ -75,12 +75,13 @@ or whose own collection degraded (an `OUTCAR` without a final energy, say)
 degrades the phonopy run, which then names only the displacement runs that
 were collected; the degraded displacement is reported on its own line.
 
-```{admonition} Phonon properties are not stored yet
+```{admonition} The collector stores no phonon properties
 :class: note
 
-Force constants, phonon band structures, densities of states and
-thermodynamic properties have no definitions in the *httk₂* schemas yet, so
-they are not computed or stored. What is stored is the provenance of the
+The collector computes and stores no force constants, phonon band
+structures, densities of states or thermodynamic properties; the
+`phonopy.phonons` workflow below records them for its own runs. What is
+stored is the provenance of the
 calculation, the phonopy dataset files, and the total energy of each
 displaced supercell. The forces themselves stay in the `OUTCAR` files and in
 `FORCE_SETS`.
@@ -128,6 +129,34 @@ from httk.workflow import collect_tree, store_collected
 items = list(collect_tree("calculations"))
 reports = store_collected(items, "results.sqlite", id_base="mydb")
 ```
+
+## The phonopy.phonons workflow
+
+The repository's `workflows/phonopy-phonons` is the workflow package
+`phonopy.phonons`: harmonic phonons of one already relaxed structure by finite
+displacements with phonopy, with no relaxation and no non-analytical
+correction. It computes no forces itself. Its call slot `forces` (interface
+`calls/structure-forces.json`: a structure in, a `cartesian_site_forces`
+record of that structure out) has no default, so every job binds a force
+workflow:
+
+```console
+httk job new --install --workflow phonopy.phonons --input structure=POSCAR \
+    --call forces=ase.static --call-parameter forces calculator=ase.calculators.emt:EMT
+httk workflow run
+httk collect --into results.sqlite
+```
+
+`displace` takes the HPKOT primitive cell, orders its sites by species (the
+`phonon_cell` output), and calls the slot once per displaced supercell;
+`analyse` reads each child's forces back in the cell's site order and computes
+the force constants, the band structure along the HPKOT path, the density of
+states and the harmonic thermodynamics. Keeping the displacement children
+numerically consistent (the same k-point mesh, smearing and remedies) is the
+binding's responsibility; the repository README gives a `vasp.static` binding
+that excludes the remedies that would change one child's numerics, and lists
+the parameters and outputs. Install the workflow with `httk plugin install` of
+the repository, or use it directly with `--workflow-dir`.
 
 ## Building blocks
 

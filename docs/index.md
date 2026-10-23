@@ -3,7 +3,10 @@
 This site documents the *httk-workflow-phonopy* module. For the full
 documentation of *httk₂*, see [docs.httk.org](https://docs.httk.org).
 
-The module teaches `httk collect` to recognize finished
+The module ships the workflow package `phonopy.phonons`, code-neutral
+harmonic phonons by finite displacements whose forces come from any force
+workflow the job binds (see {doc}`usage`), and teaches `httk collect` to
+recognize finished
 [phonopy](https://phonopy.github.io/phonopy/) finite-displacement
 calculations whose displaced supercells were computed with VASP. Such a
 calculation is a directory holding phonopy's `phonopy_disp.yaml` and the unit
@@ -13,16 +16,16 @@ runs as its child runs; the displacement runs themselves are collected by the
 `vasp.calculation.static` collector of *httk-workflow-vasp*.
 
 Installing it registers the `phonopy.calculation.vasp` collector through the
-`httk.registry.codes.phonopy` registration package. It registers no code:
-phonopy is collected, never run, by *httk₂*. The building blocks of the
-collector are in `httk.codes.phonopy.collect`. Phonon properties (force
-constants, band structures, densities of states) are not stored yet; see
-{doc}`usage`.
+`httk.registry.codes.phonopy` registration package. It registers no code: the
+collector only reads phonopy's files. The building blocks of the
+collector are in `httk.codes.phonopy.collect`. The collector stores no phonon
+properties (force constants, band structures, densities of states);
+`phonopy.phonons` records them for its own runs; see {doc}`usage`.
 
 ```{admonition} Quick links
 :class: tip
 
-- {doc}`usage` — the expected layout, what is stored, and a sweep
+- {doc}`usage` — the expected layout, what is stored, a sweep, and the `phonopy.phonons` workflow
 - {doc}`reference/index` — the generated API reference
 ```
 

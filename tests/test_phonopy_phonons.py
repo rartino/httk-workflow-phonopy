@@ -199,9 +199,9 @@ def _new_job(
     from httk.workflow.scaffold import new_job
 
     (tmp_path / "POSCAR").write_text(poscar, encoding="utf-8")
-    return new_job(
+    return new_job(  # type: ignore[call-overload]
         workspace,
-        workflow,  # type: ignore[arg-type]
+        workflow,  # pyright: ignore[reportArgumentType]
         inputs={"structure": tmp_path / "POSCAR"},
         parameters=PARAMETERS | parameters,
         calls={"forces": _install(workspace, callee) if isinstance(callee, Path) else callee},
